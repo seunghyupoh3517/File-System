@@ -17,3 +17,8 @@ Above the block layer, the FS layer is in charge of the actual file system manag
 4. Data blocks: All the remaining blocks are Data blocks and are used by the content of files (The size of virtual disk blocks is 4096 bytes).
 
 
+## Work phases
+### Phase0: Skeleton code
+The code is organized in two parts. In the subdirectory apps, there is one test application that you can use (and enhance to your needs).
+
+In the subdirectory libfs, there are the files composing the file-system library that you must complete. The files to complete are marked with a star (you should have no reason to touch any of the headers which are not marked with a star, even if you think you do…).
