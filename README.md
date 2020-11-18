@@ -16,6 +16,9 @@ Above the block layer, the FS layer is in charge of the actual file system manag
 3. Root directory: The Root directory is in the following block and contains an entry for each file of the file system, defining its name, size and the location of the first data block for this file.
 4. Data blocks: All the remaining blocks are Data blocks and are used by the content of files (The size of virtual disk blocks is 4096 bytes).
 
+------------------------------------------------------------------------------------------------------------------
+Super Block | FAT#0 | FAT#1 | ... | FAT#End | Root Directory | Data Block#0 | Data Block#1 | ... | Data Block#End |
+------------------------------------------------------------------------------------------------------------------
 
 ## Work phases
 ### Phase0: Skeleton code
