@@ -17,7 +17,7 @@
 // __attribute__((packed)) specifieseach member of the struct is placed to minimize memory required
 struct __attribute__((packed)) super_block{
 	/* ECS150FS */
-	char signature[8]; 
+	uint8_t signature[8]; 
 	uint16_t total_num_blocks;
 	uint16_t root_dir_index;
 	uint16_t data_start_index;
@@ -28,7 +28,7 @@ struct __attribute__((packed)) super_block{
 
 struct __attribute__((packed)) entry{
 	/* "test1", 22000, 2 */
-	char filename[FS_FILENAME_LEN];
+	uint8_t filename[FS_FILENAME_LEN];
 	uint32_t file_size;
 	uint16_t first_data_index;
 	uint8_t unused[10];
@@ -122,7 +122,7 @@ int fs_info(void)
 	*/
 
 	// Return: -1 if no underlying virtual disk was opened
-	if(super_t.signature[0] == '\0')
+	if(super_t.signature[0] == 0)
 		return -1;
 
 	int fat_free = 0;
@@ -133,7 +133,7 @@ int fs_info(void)
 
 	int rdir_free = 0;
 	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
-		if(root_t.entries_root[i].filename[0] == '\0')
+		if(root_t.entries_root[i].filename[0] == 0)
 			rdir_free++;
 	}
 
