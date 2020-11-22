@@ -47,7 +47,9 @@ struct __attribute__((packed)) FAT{
 struct super_block super_t;
 struct root_directory root_t;
 struct FAT fat_t;
+
 uint32_t num_open_files;
+
 
 /* Open the virtual disk, read the metadata - superblock, root_directory, FAT */
 int fs_mount(const char *diskname)
@@ -96,6 +98,7 @@ int fs_mount(const char *diskname)
 		return -1;
 	
 	num_open_files = 0;
+
 	return 0;
 }
 
@@ -127,7 +130,6 @@ int fs_umount(void)
 	}
 
 }	
-
 /* Show information about volume */
 int fs_info(void)
 {
