@@ -48,6 +48,9 @@ struct super_block super_t;
 struct root_directory root_t;
 struct FAT fat_t;
 
+uint32_t num_open_files;
+
+
 /* Open the virtual disk, read the metadata - superblock, root_directory, FAT */
 int fs_mount(const char *diskname)
 {
@@ -94,17 +97,39 @@ int fs_mount(const char *diskname)
 	if(super_t.root_dir_index + 1 != super_t.data_start_index)
 		return -1;
 	
+	num_open_files = 0;
+
 	return 0;
 }
 
 /* Close virtual disk - make sure that Virtual disk is up to date */
 int fs_umount(void)
 {
-	/* TODO: Phase 1 */
+	/* TODO: Phase 1 */		
+	/* write blocks to disk */
+	block_write(0, &super_t);
+	block_write(super_t.root_dir_index, &root_t);
+	
+	/*clean and reset everything */
+	free(fat_t.entries_fat);
+	memset(root_t.entries_root, 0, FS_FILE_MAX_COUNT); 
+	memcmp("", super_t.signature, sizeof(super_t.signature));
+	super_t.total_num_blocks = 0;
+	super_t.root_dir_index = 0;
+	super_t.data_start_index = 0;
+	super_t.num_data_blocks = 0;
+	super_t.num_FAT_blocks = 0;
 
-	return 0;
-}
+	if(num_open_files != 0) {
+		return -1;
+	}
 
+	/*close virtual disk*/
+	if(block_disk_close() == -1) {
+		return -1;
+	}
+
+}	
 /* Show information about volume */
 int fs_info(void)
 {
@@ -152,18 +177,32 @@ int fs_info(void)
 int fs_create(const char *filename)
 {
 	/* TODO: Phase 2 */
+	int i;
+	for(i = 0; i < FS_FILE_MAX_COUNT; i++) {
+		if(root_t.entries_root[i].filename == "") {
+			*root_t.entries_root[i].filename = filename;
+			break;
+		}
+	}
+	root_t.entries_root[i].file_size = 0;
+	root_t.entries_root[i].first_data_index = FAT_EOC;
 	return 0;
 }
 
 int fs_delete(const char *filename)
 {
 	/* TODO: Phase 2 */
+	
 	return 0;
 }
 
 int fs_ls(void)
 {
 	/* TODO: Phase 2 */
+	printf("FS Ls:\n");
+	for(int i = 0; i< FS_FILE_MAX_COUNT; i++) {
+		printf("file: %s, size: %d, data_blk: %d\n",root_t.entries_root[i].filename,root_t.entries_root[i].file_size,root_t.entries_root[i].first_data_index);
+	}
 	return 0;
 }
 
@@ -202,4 +241,3 @@ int fs_read(int fd, void *buf, size_t count)
 	/* TODO: Phase 4 */
 	return 0;
 }
-
