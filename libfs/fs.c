@@ -7,6 +7,8 @@
 
 #include "disk.h"
 #include "fs.h"
+// Finish up Phase1 + Check Phase2 + Move on to Phase3
+
 
 /* TODO: Phase 1 */
 
@@ -14,7 +16,7 @@
 #define FAT_EOC 0xFFFF
 #define AVAILABLE 0
 
-// __attribute__((packed)) specifieseach member of the struct is placed to minimize memory required
+// __attribute__((packed)) specifies each member of the struct is placed to minimize memory required
 struct __attribute__((packed)) super_block{
 	/* ECS150FS */
 	uint8_t signature[8]; 
@@ -44,12 +46,22 @@ struct __attribute__((packed)) FAT{
 	uint16_t *entries_fat;
 };
 
+struct __attribute__((packed)) file{
+	uint8_t filename[FS_FILENAME_LEN];
+	int file_offset;
+};
+
+struct __attribute__((packed)) file_descriptor_table{
+	int num_open_file;
+	struct file file_t[FS_OPEN_MAX_COUNT];
+};
+
+struct file_descriptor_table file_des_table;
 struct super_block super_t;
 struct root_directory root_t;
 struct FAT fat_t;
 
-uint32_t num_open_files;
-
+// uint32_t num_open_files;
 
 /* Open the virtual disk, read the metadata - superblock, root_directory, FAT */
 int fs_mount(const char *diskname)
@@ -81,13 +93,18 @@ int fs_mount(const char *diskname)
 	if(super_t.num_FAT_blocks + 1 != super_t.root_dir_index)
 		return -1;
 
-	// 2048 entries of 16 bit, 2 bytes 
-	// allocate fat_t array then allocate memory to each fat block + error check
-	fat_t.entries_fat = malloc(BLOCK_SIZE * sizeof(uint16_t));
-
-	//
-	// Incompleted, Recheck needed
-	//
+	// each fat block can have 2048 entries of 16 bit, 2 bytes - one data block = 2 bytes
+	// total fat block = #data block * 16bit 
+	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t)); Internal fragmentation?
+	fat_t.entries_fat = malloc(BLOCK_SIZE * super_t.num_FAT_blocks);
+	void *fat_block = malloc(BLOCK_SIZE);
+	for(int i = 1; i < super_t.root_dir_index; i++){
+		if(block_read(i, &fat_block)== -1)
+			return -1;
+		// each block of FAT has block_read
+		memcpy(fat_t.entries_fat  + ((i-1) * BLOCK_SIZE), fat_block, BLOCK_SIZE);
+	}
+	free(fat_block);
 
 	// Root Directory
 	if(block_read(super_t.root_dir_index, &root_t) == -1)
@@ -97,7 +114,9 @@ int fs_mount(const char *diskname)
 	if(super_t.root_dir_index + 1 != super_t.data_start_index)
 		return -1;
 	
-	num_open_files = 0;
+	// ???
+	// file_des_table.num_open_file = 0;
+	// num_open_files = 0;
 
 	return 0;
 }
@@ -120,7 +139,7 @@ int fs_umount(void)
 	super_t.num_data_blocks = 0;
 	super_t.num_FAT_blocks = 0;
 
-	if(num_open_files != 0) {
+	if(file_des_table.num_open_file != 0) {
 		return -1;
 	}
 
@@ -129,7 +148,9 @@ int fs_umount(void)
 		return -1;
 	}
 
+	return 0;
 }	
+
 /* Show information about volume */
 int fs_info(void)
 {
@@ -206,27 +227,85 @@ int fs_ls(void)
 	return 0;
 }
 
+// None of these functions should change the filesystem - new reference of strucutres
 int fs_open(const char *filename)
 {
 	/* TODO: Phase 3 */
-	return 0;
+	if(!filename)
+		return -1;
+
+	if(strlen(filename) > FS_FILENAME_LEN)
+		return -1;
+
+	// no file named @filename to open
+	int no_file = 0;
+	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
+		if(strcmp(filename, (const char*)file_des_table.file_t[i].filename) == 0)
+			no_file = 1;
+	}
+	if(!no_file)
+		return -1;
+	
+	if(file_des_table.num_open_file >= FS_OPEN_MAX_COUNT)
+		return -1;
+
+	int fd_id = 0;
+
+
+	return fd_id;
 }
 
 int fs_close(int fd)
 {
 	/* TODO: Phase 3 */
+	if(fd < 0  || fd > 32)
+		return -1;
+	
+	
+
+
 	return 0;
 }
 
 int fs_stat(int fd)
 {
 	/* TODO: Phase 3 */
-	return 0;
+	if(fd < 0  || fd > 32)
+		return -1;
+
+	char *name;
+	if(file_des_table.file_t[fd].filename[0] == '\0')
+		return -1;
+	else
+		name = (char *)(file_des_table.file_t[fd].filename);
+
+	int current_file_size = -1;
+	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
+		if(strcmp((char *)root_t.entries_root[i].filename, name) == 0){
+			current_file_size = root_t.entries_root[i].file_size;
+			return current_file_size;
+		}
+	}
+
+	return current_file_size;
 }
 
+// set fs_stat(fd) -> fs_lseek(fd, "offset")
 int fs_lseek(int fd, size_t offset)
 {
 	/* TODO: Phase 3 */
+	if(fd < 0  || fd > 32)
+		return -1;
+
+	if(file_des_table.file_t[fd].filename[0] == '\0')
+		return -1;
+
+	size_t current_file_size = fs_stat(fd);
+	if(offset > current_file_size)
+		return -1;
+
+	file_des_table.file_t[fd].file_offset = current_file_size;
+
 	return 0;
 }
 
