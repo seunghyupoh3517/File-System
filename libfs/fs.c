@@ -126,8 +126,11 @@ int fs_umount(void)
 {
 	/* TODO: Phase 1 */		
 	/* write blocks to disk */
-	block_write(0, &super_t);
-	block_write(super_t.root_dir_index, &root_t);
+	if(block_write(0, &super_t) == -1)
+		return -1;
+
+	if(block_write(super_t.root_dir_index, &root_t) == -1)
+		return -1;
 	
 	/*clean and reset everything */
 	free(fat_t.entries_fat);
@@ -212,8 +215,25 @@ int fs_create(const char *filename)
 
 int fs_delete(const char *filename)
 {
+	int pos = 0;
+
 	/* TODO: Phase 2 */
-	
+	for( pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
+		if(root_t.entries_root[pos].filename == filename) {
+			break;
+		}
+	}
+	struct entry empty_entry;
+	uint16_t data_index = root_t.entries_root[pos].first_data_index;
+
+	while(data_index != 0xFFFF) {
+		uint16_t next_index = fat_t.entries_fat[data_index];
+		fat_t.entries_fat[data_index] = 0;
+		data_index = next_index;
+	}
+	fat_t.entries_fat[data_index] = 0;
+
+	root_t.entries_root[pos] = empty_entry;
 	return 0;
 }
 
