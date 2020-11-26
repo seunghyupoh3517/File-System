@@ -205,8 +205,8 @@ int fs_create(const char *filename)
 	/* TODO: Phase 2 */
 	int i;
 	for(i = 0; i < FS_FILE_MAX_COUNT; i++) {
-		if(root_t.entries_root[i].filename == "") {
-			*root_t.entries_root[i].filename = filename;
+		if(strcmp(root_t.entries_root[i].filename,"")) {
+			strcpy(root_t.entries_root[i].filename, filename);
 			break;
 		}
 	}
@@ -221,7 +221,7 @@ int fs_delete(const char *filename)
 
 	/* TODO: Phase 2 */
 	for( pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
-		if(root_t.entries_root[pos].filename == filename) {
+		if(strcmp(root_t.entries_root[pos].filename,filename)) {
 			break;
 		}
 	}
