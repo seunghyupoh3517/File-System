@@ -48,7 +48,7 @@ struct __attribute__((packed)) FAT{
 
 struct __attribute__((packed)) file{
 	uint8_t filename[FS_FILENAME_LEN];
-	int file_offset;
+	size_t *file_offset;
 };
 
 struct __attribute__((packed)) file_descriptor_table{
@@ -126,8 +126,11 @@ int fs_umount(void)
 {
 	/* TODO: Phase 1 */		
 	/* write blocks to disk */
-	block_write(0, &super_t);
-	block_write(super_t.root_dir_index, &root_t);
+	if(block_write(0, &super_t) == -1)
+		return -1;
+
+	if(block_write(super_t.root_dir_index, &root_t) == -1)
+		return -1;
 	
 	/*clean and reset everything */
 	free(fat_t.entries_fat);
@@ -212,8 +215,25 @@ int fs_create(const char *filename)
 
 int fs_delete(const char *filename)
 {
+	int pos = 0;
+
 	/* TODO: Phase 2 */
-	
+	for( pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
+		if(root_t.entries_root[pos].filename == filename) {
+			break;
+		}
+	}
+	struct entry empty_entry;
+	uint16_t data_index = root_t.entries_root[pos].first_data_index;
+
+	while(data_index != 0xFFFF) {
+		uint16_t next_index = fat_t.entries_fat[data_index];
+		fat_t.entries_fat[data_index] = 0;
+		data_index = next_index;
+	}
+	fat_t.entries_fat[data_index] = 0;
+
+	root_t.entries_root[pos] = empty_entry;
 	return 0;
 }
 
@@ -240,7 +260,7 @@ int fs_open(const char *filename)
 	// no file named @filename to open
 	int no_file = 0;
 	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
-		if(strcmp(filename, (const char*)file_des_table.file_t[i].filename) == 0)
+		if(strcmp(filename, (const char*)root_t.entries_root[i].filename) == 0)
 			no_file = 1;
 	}
 	if(!no_file)
@@ -250,7 +270,15 @@ int fs_open(const char *filename)
 		return -1;
 
 	int fd_id = 0;
-
+	for(int i = 0; i < FS_OPEN_MAX_COUNT; i++){
+		if(file_des_table.file_t[i].filename[0]  == '\0'){
+			file_des_table.num_open_file++;
+			fd_id = i;
+			memcpy(file_des_table.file_t[i].filename, filename, FS_FILENAME_LEN);
+			file_des_table.file_t[i].file_offset = 0;
+			break;
+		}
+	}
 
 	return fd_id;
 }
@@ -258,11 +286,15 @@ int fs_open(const char *filename)
 int fs_close(int fd)
 {
 	/* TODO: Phase 3 */
-	if(fd < 0  || fd > 32)
+	if(fd < 0  || fd > FS_OPEN_MAX_COUNT)
 		return -1;
 	
+	if(file_des_table.file_t[fd].filename[0] == '\0')
+		return -1;
 	
-
+	file_des_table.file_t[fd].filename[0] = '\0';
+	file_des_table.file_t[fd].file_offset = NULL;
+	file_des_table.num_open_file--;
 
 	return 0;
 }
@@ -270,7 +302,7 @@ int fs_close(int fd)
 int fs_stat(int fd)
 {
 	/* TODO: Phase 3 */
-	if(fd < 0  || fd > 32)
+	if(fd < 0  || fd > FS_OPEN_MAX_COUNT)
 		return -1;
 
 	char *name;
@@ -294,7 +326,7 @@ int fs_stat(int fd)
 int fs_lseek(int fd, size_t offset)
 {
 	/* TODO: Phase 3 */
-	if(fd < 0  || fd > 32)
+	if(fd < 0  || fd > FS_OPEN_MAX_COUNT)
 		return -1;
 
 	if(file_des_table.file_t[fd].filename[0] == '\0')
@@ -304,19 +336,56 @@ int fs_lseek(int fd, size_t offset)
 	if(offset > current_file_size)
 		return -1;
 
-	file_des_table.file_t[fd].file_offset = current_file_size;
+	file_des_table.file_t[fd].file_offset = &current_file_size;
 
 	return 0;
 }
 
+/* 
+
+Helper functions needed
+1. Returns the index of the data block corresponding to the file's offset
+2. fs_write: in the case file has to be extended in size -> function that allocates a new data block and link it at the end of file's data block chain
+-> first fit strategy (first block available from the begininning of the FAT)
+3. Deal with possible mismatches between file's current offset, amount of bytes to r/w, size of blocks
+
+*/
+
+/*
+int ret_index_datablock(int fd)
+{
+	int index = 0;
+	for(int i = 0; i <FS_FILE_MAX_COUNT; i++){
+		if(strcmp(char *)root_t.entries_root[i].filename, ) == 0){
+			index = 
+		}
+	}
+
+	return index;
+}
+*/
+
 int fs_write(int fd, void *buf, size_t count)
 {
 	/* TODO: Phase 4 */
+	if(fd < 0  || fd > FS_OPEN_MAX_COUNT)
+		return -1;
+
+	if(file_des_table.file_t[fd].filename[0] == '\0')
+		return -1;
+
 	return 0;
 }
 
 int fs_read(int fd, void *buf, size_t count)
 {
 	/* TODO: Phase 4 */
+	if(fd < 0  || fd > FS_OPEN_MAX_COUNT)
+		return -1;
+
+	if(file_des_table.file_t[fd].filename[0] == '\0')
+		return -1;
+
+	
 	return 0;
 }
