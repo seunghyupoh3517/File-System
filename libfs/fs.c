@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <math.h> // Check constraints
 
 #include "disk.h"
 #include "fs.h"
 // Finish up Phase1 + Check Phase2 + Move on to Phase3
 
+// /home/cs150jp/public/p3/apps/test_fs_student.sh testing script
 
 /* TODO: Phase 1 */
 
@@ -97,14 +97,16 @@ int fs_mount(const char *diskname)
 	// total fat block = #data block * 16bit 
 	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t)); Internal fragmentation?
 	fat_t.entries_fat = malloc(BLOCK_SIZE * super_t.num_FAT_blocks);
+	// malloc?
 	void *fat_block = malloc(BLOCK_SIZE);
 	for(int i = 1; i < super_t.root_dir_index; i++){
+		
 		if(block_read(i, &fat_block)== -1)
 			return -1;
 		// each block of FAT has block_read
 		memcpy(fat_t.entries_fat  + ((i-1) * BLOCK_SIZE), fat_block, BLOCK_SIZE);
 	}
-	free(fat_block);
+	// free(fat_block);
 
 	// Root Directory
 	if(block_read(super_t.root_dir_index, &root_t) == -1)
