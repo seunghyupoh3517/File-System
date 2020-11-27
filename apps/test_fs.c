@@ -380,7 +380,8 @@ void thread_fs_rm(void *arg)
 	diskname = t_arg->argv[0];
 	filename = t_arg->argv[1];
 
-	if (fs_mount(diskname))
+	
+	if (fs_mount(diskname)) {}
 		die("Cannot mount diskname");
 
 	if (fs_delete(filename)) {
@@ -452,7 +453,6 @@ void thread_fs_add(void *arg)
 
 	printf("Wrote file '%s' (%d/%zu bytes)\n", filename, written,
 		   st.st_size);
-
 	munmap(buf, st.st_size);
 	close(fd);
 }

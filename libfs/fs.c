@@ -136,39 +136,46 @@ int fs_mount(const char *diskname)
 /* Close virtual disk - make sure that Virtual disk is up to date */
 int fs_umount(void)
 {
-	/* TODO: Phase 1 */		
-	/* write blocks to disk */
-	if(block_write(0, &super_t) == -1)
-		return -1;
+        /* TODO: Phase 1 */
+        /* write blocks to disk */
 
-	if(block_write(super_t.root_dir_index, &root_t) == -1)
-		return -1;
-	
-	/*clean and reset everything */
-	// free(fat_t.entries_fat);
-	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};	
-	for(int i = 0; i < FS_FILE_MAX_COUNT; i++) {
-		root_t.entries_root[i] = empty_entry;
-	}
-	char* tempstr = "";
-	strcpy((char *)super_t.signature, tempstr);
-	super_t.total_num_blocks = 0;
-	super_t.root_dir_index = 0;
-	super_t.data_start_index = 0;
-	super_t.num_data_blocks = 0;
-	super_t.num_FAT_blocks = 0;
+        if(block_write(0, &super_t) == -1)
+                return -1;
 
-	if(file_des_table.num_open_file != 0) {
-		return -1;
-	}
 
-	/*close virtual disk*/
-	if(block_disk_close() == -1) {
-		return -1;
-	}
+        if(block_write(super_t.root_dir_index, &root_t) == -1)
+                return -1;
 
-	return 0;
-}	
+        for (int i = 1; i < super_t.root_dir_index; i++) {
+                if (block_write(i, &fat_t) == -1 )
+                        return -1;
+        }
+
+        /*clean and reset everything */
+        //free(fat_t.entries_fat);
+        struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};
+        for(int i = 0; i < FS_FILE_MAX_COUNT; i++) {
+                root_t.entries_root[i] = empty_entry;
+        }
+        char* tempstr = "";
+        strcpy((char *)super_t.signature, tempstr);
+        super_t.total_num_blocks = 0;
+        super_t.root_dir_index = 0;
+        super_t.data_start_index = 0;
+        super_t.num_data_blocks = 0;
+        super_t.num_FAT_blocks = 0;
+
+        if(file_des_table.num_open_file != 0) {
+                return -1;
+        }
+
+        /*close virtual disk*/
+        if(block_disk_close() == -1) {
+                return -1;
+        }
+
+        return 0;
+}
 
 /* Show information about volume */
 int fs_info(void)
@@ -216,17 +223,18 @@ int fs_info(void)
 
 int fs_create(const char *filename)
 {
-	/* TODO: Phase 2 */
-	int i;
-	for(i = 0; i < FS_FILE_MAX_COUNT; i++) {
-		if(strcmp((char *)root_t.entries_root[i].filename,"")) {
-			strcpy((char *)root_t.entries_root[i].filename, filename);
-			break;
-		}
-	}
-	root_t.entries_root[i].file_size = 0;
-	root_t.entries_root[i].first_data_index = FAT_EOC;
-	return 0;
+
+        /* TODO: Phase 2 */
+    int i;
+    for(i = 0; i < FS_FILE_MAX_COUNT; i++) {
+        if(strcmp((char *)root_t.entries_root[i].filename,"") == 0) {
+            strcpy((char *)root_t.entries_root[i].filename, filename);
+            root_t.entries_root[i].file_size = 0;
+            root_t.entries_root[i].first_data_index = FAT_EOC;
+            	break;
+            }
+        }
+        return 0;
 }
 
 int fs_delete(const char *filename)
@@ -258,14 +266,14 @@ int fs_delete(const char *filename)
 
 int fs_ls(void)
 {
-	/* TODO: Phase 2 */
-	printf("FS Ls:\n");
-	for(int i = 0; i< FS_FILE_MAX_COUNT; i++) {
-		if(root_t.entries_root[i].first_data_index != 0) {
-			printf("file: %s, size: %d, data_blk: %d\n",root_t.entries_root[i].filename,root_t.entries_root[i].file_size,root_t.entries_root[i].first_data_index);
-		}
-	}
-	return 0;
+    /* TODO: Phase 2 */
+    printf("FS Ls:\n");
+    for(int i = 0; i< FS_FILE_MAX_COUNT; i++) {
+        if(strcmp(root_t.entries_root[i].filename,"") != 0) {
+            printf("file: %s, size: %d, data_blk: %d\n",root_t.entries_root[i].filename,root_t.entries_root[i].file_size,root_t.entries_root[i].first_data_index);
+        	}
+        }
+        return 0;
 }
 
 // None of these functions should change the filesystem - new reference of strucutres
