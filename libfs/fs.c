@@ -67,31 +67,40 @@ struct FAT fat_t;
 int fs_mount(const char *diskname)
 {	
 	/* TODO: Phase 1 */
-	if(block_disk_open(diskname) == -1)
+	if(block_disk_open(diskname) == -1) {
 		return -1;
-
+	}
 	// Superblock
-	if(block_read(0, &super_t) == -1)
+	if(block_read(0, &super_t) == -1) {
 		return -1;
+	}
 	
-	if(memcmp("ECS150FS", super_t.signature, sizeof(super_t.signature)))
-		return -1;
+	if(memcmp("ECS150FS", super_t.signature, sizeof(super_t.signature))) {
 
-	if(block_disk_count() != super_t.total_num_blocks)
 		return -1;
-	
-	if(super_t.num_data_blocks + super_t.num_FAT_blocks + 2 != super_t.total_num_blocks)
+	}
+	if(block_disk_count() != super_t.total_num_blocks) {
+
 		return -1;
-	
+	}
+
+	if(super_t.num_data_blocks + super_t.num_FAT_blocks + 2 != super_t.total_num_blocks) {
+
+		return -1;
+	}
 	// FAT
 	uint16_t extra = 0;
-	if(((super_t.num_data_blocks * 2) % BLOCK_SIZE) != 0)
+	if(((super_t.num_data_blocks * 2) % BLOCK_SIZE) != 0) {
 		extra = 1;
-	if(super_t.num_FAT_blocks != (((super_t.num_data_blocks * 2) / BLOCK_SIZE) + extra))
-		return -1;
+	}
+	if(super_t.num_FAT_blocks != (((super_t.num_data_blocks * 2) / BLOCK_SIZE) + extra)) {
 
-	if(super_t.num_FAT_blocks + 1 != super_t.root_dir_index)
 		return -1;
+	}
+
+	if(super_t.num_FAT_blocks + 1 != super_t.root_dir_index) {
+		return -1;
+	}
 	// each fat block can have 2048 entries of 16 bit, 2 bytes - one data block = 2 bytes
 	// total fat block = #data block * 16bit 
 	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t)); Internal fragmentation?
@@ -129,7 +138,6 @@ int fs_mount(const char *diskname)
 	// ???
 	// file_des_table.num_open_file = 0;
 	// num_open_files = 0;
-
 	return 0;
 }
 
@@ -242,7 +250,7 @@ int fs_delete(const char *filename)
 	int pos;
 
 	/* TODO: Phase 2 */
-	for(pos = 0; pos < FS_FILE_MAX_COUNT; ++pos) {
+	for(pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
 		if(strcmp((char *)root_t.entries_root[pos].filename,filename)) {
 			break;
 		}
@@ -283,17 +291,19 @@ int fs_open(const char *filename)
 	if(!filename)
 		return -1;
 
-	if(strlen(filename) > FS_FILENAME_LEN)
+	if(strlen(filename) > FS_FILENAME_LEN) {
 		return -1;
+	}
 
 	// no file named @filename to open
 	int no_file = 0;
 	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
-		if(strcmp(filename, (const char*)root_t.entries_root[i].filename) == 0)
+		if(strcmp(filename, (const char*)root_t.entries_root[i].filename) == 0) {}
 			no_file = 1;
 	}
-	if(!no_file)
+	if(!no_file) {
 		return -1;
+	}
 	
 	if(file_des_table.num_open_file >= FS_OPEN_MAX_COUNT)
 		return -1;
@@ -308,6 +318,7 @@ int fs_open(const char *filename)
 			break;
 		}
 	}
+
 
 	return fd_id;
 }
@@ -324,6 +335,7 @@ int fs_close(int fd)
 	file_des_table.file_t[fd].filename[0] = '\0';
 	file_des_table.file_t[fd].file_offset = 0;
 	file_des_table.num_open_file--;
+
 
 	return 0;
 }
