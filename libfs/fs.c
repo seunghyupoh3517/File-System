@@ -48,7 +48,7 @@ struct __attribute__((packed)) FAT{
 
 struct __attribute__((packed)) file{
 	uint8_t filename[FS_FILENAME_LEN];
-	size_t *file_offset;
+	size_t file_offset;
 };
 
 struct __attribute__((packed)) file_descriptor_table{
@@ -65,7 +65,7 @@ struct FAT fat_t;
 
 /* Open the virtual disk, read the metadata - superblock, root_directory, FAT */
 int fs_mount(const char *diskname)
-{
+{	
 	/* TODO: Phase 1 */
 	if(block_disk_open(diskname) == -1)
 		return -1;
@@ -96,6 +96,8 @@ int fs_mount(const char *diskname)
 	// each fat block can have 2048 entries of 16 bit, 2 bytes - one data block = 2 bytes
 	// total fat block = #data block * 16bit 
 	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t)); Internal fragmentation?
+	
+	/*
 	fat_t.entries_fat = malloc(BLOCK_SIZE * super_t.num_FAT_blocks);
 	// malloc?
 	void *fat_block = malloc(BLOCK_SIZE);
@@ -106,7 +108,16 @@ int fs_mount(const char *diskname)
 		// each block of FAT has block_read
 		memcpy(fat_t.entries_fat  + ((i-1) * BLOCK_SIZE), fat_block, BLOCK_SIZE);
 	}
+	*/
+
 	// free(fat_block);
+	fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(super_t.num_data_blocks));
+	void *fat_block = malloc(BLOCK_SIZE);
+	for (int i = 1; i < super_t.root_dir_index; i++) {
+		if (block_read(i, fat_block) == -1)
+			return -1;
+		memcpy(fat_t.entries_fat + (i-1)*BLOCK_SIZE, fat_block, BLOCK_SIZE);
+	}
 
 	// Root Directory
 	if(block_read(super_t.root_dir_index, &root_t) == -1)
@@ -135,9 +146,9 @@ int fs_umount(void)
 		return -1;
 	
 	/*clean and reset everything */
-	free(fat_t.entries_fat);
-	memset(root_t.entries_root, 0, FS_FILE_MAX_COUNT); 
-	memcmp("", super_t.signature, sizeof(super_t.signature));
+	//free(fat_t.entries_fat);
+	//memset(root_t.entries_root, 0, FS_FILE_MAX_COUNT); 
+	//memcmp("", super_t.signature, sizeof(super_t.signature));
 	super_t.total_num_blocks = 0;
 	super_t.root_dir_index = 0;
 	super_t.data_start_index = 0;
@@ -205,8 +216,8 @@ int fs_create(const char *filename)
 	/* TODO: Phase 2 */
 	int i;
 	for(i = 0; i < FS_FILE_MAX_COUNT; i++) {
-		if(strcmp(root_t.entries_root[i].filename,"")) {
-			strcpy(root_t.entries_root[i].filename, filename);
+		if(strcmp((char *)root_t.entries_root[i].filename,"")) {
+			strcpy((char *)root_t.entries_root[i].filename, filename);
 			break;
 		}
 	}
@@ -221,11 +232,11 @@ int fs_delete(const char *filename)
 
 	/* TODO: Phase 2 */
 	for( pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
-		if(strcmp(root_t.entries_root[pos].filename,filename)) {
+		if(strcmp((char *)root_t.entries_root[pos].filename,filename)) {
 			break;
 		}
 	}
-	struct entry empty_entry;
+	//struct entry empty_entry;
 	uint16_t data_index = root_t.entries_root[pos].first_data_index;
 
 	while(data_index != 0xFFFF) {
@@ -234,8 +245,8 @@ int fs_delete(const char *filename)
 		data_index = next_index;
 	}
 	fat_t.entries_fat[data_index] = 0;
+	//root_t.entries_root[pos] = empty_entry;
 
-	root_t.entries_root[pos] = empty_entry;
 	return 0;
 }
 
@@ -295,7 +306,7 @@ int fs_close(int fd)
 		return -1;
 	
 	file_des_table.file_t[fd].filename[0] = '\0';
-	file_des_table.file_t[fd].file_offset = NULL;
+	file_des_table.file_t[fd].file_offset = 0;
 	file_des_table.num_open_file--;
 
 	return 0;
@@ -338,7 +349,7 @@ int fs_lseek(int fd, size_t offset)
 	if(offset > current_file_size)
 		return -1;
 
-	file_des_table.file_t[fd].file_offset = &current_file_size;
+	file_des_table.file_t[fd].file_offset = current_file_size;
 
 	return 0;
 }
@@ -375,6 +386,12 @@ int fs_write(int fd, void *buf, size_t count)
 
 	if(file_des_table.file_t[fd].filename[0] == '\0')
 		return -1;
+	
+	if(count == 0)
+		return -1;
+
+	if(buf == NULL)
+		return -1;
 
 	return 0;
 }
@@ -388,6 +405,11 @@ int fs_read(int fd, void *buf, size_t count)
 	if(file_des_table.file_t[fd].filename[0] == '\0')
 		return -1;
 
+	if(count == 0)
+		return -1;
+
+	if(buf == NULL)
+		return -1;
 	
 	return 0;
 }
