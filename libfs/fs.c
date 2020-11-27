@@ -19,7 +19,7 @@
 // __attribute__((packed)) specifies each member of the struct is placed to minimize memory required
 struct __attribute__((packed)) super_block{
 	/* ECS150FS */
-	uint8_t signature[8]; 
+	uint16_t signature; 
 	uint16_t total_num_blocks;
 	uint16_t root_dir_index;
 	uint16_t data_start_index;
@@ -134,8 +134,10 @@ int fs_umount(void)
 	
 	/*clean and reset everything */
 	free(fat_t.entries_fat);
-	memset(root_t.entries_root, 0, FS_FILE_MAX_COUNT); 
-	memcmp("", super_t.signature, sizeof(super_t.signature));
+	memset(root_t.entries_root, 0, FS_FILE_MAX_COUNT*sizeof(root_t.entries_root));
+	uint8_t tempstr[8] = ""; 
+	super_t.signature = tempstr;
+	strncpy("", super_t.signature, sizeof(super_t.signature));
 	super_t.total_num_blocks = 0;
 	super_t.root_dir_index = 0;
 	super_t.data_start_index = 0;
