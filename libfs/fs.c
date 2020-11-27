@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <math.h> // Check constraints
 
 #include "disk.h"
 #include "fs.h"
 // Finish up Phase1 + Check Phase2 + Move on to Phase3
 
+// /home/cs150jp/public/p3/apps/test_fs_student.sh testing script
 
 /* TODO: Phase 1 */
 
@@ -19,7 +19,7 @@
 // __attribute__((packed)) specifies each member of the struct is placed to minimize memory required
 struct __attribute__((packed)) super_block{
 	/* ECS150FS */
-	uint16_t signature; 
+	uint8_t signature[8]; 
 	uint16_t total_num_blocks;
 	uint16_t root_dir_index;
 	uint16_t data_start_index;
@@ -48,7 +48,7 @@ struct __attribute__((packed)) FAT{
 
 struct __attribute__((packed)) file{
 	uint8_t filename[FS_FILENAME_LEN];
-	size_t *file_offset;
+	size_t file_offset;
 };
 
 struct __attribute__((packed)) file_descriptor_table{
@@ -65,7 +65,7 @@ struct FAT fat_t;
 
 /* Open the virtual disk, read the metadata - superblock, root_directory, FAT */
 int fs_mount(const char *diskname)
-{
+{	
 	/* TODO: Phase 1 */
 	if(block_disk_open(diskname) == -1)
 		return -1;
@@ -79,7 +79,7 @@ int fs_mount(const char *diskname)
 
 	if(block_disk_count() != super_t.total_num_blocks)
 		return -1;
-
+	
 	if(super_t.num_data_blocks + super_t.num_FAT_blocks + 2 != super_t.total_num_blocks)
 		return -1;
 	
@@ -92,19 +92,31 @@ int fs_mount(const char *diskname)
 
 	if(super_t.num_FAT_blocks + 1 != super_t.root_dir_index)
 		return -1;
-
 	// each fat block can have 2048 entries of 16 bit, 2 bytes - one data block = 2 bytes
 	// total fat block = #data block * 16bit 
 	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t)); Internal fragmentation?
+	
+	/*
 	fat_t.entries_fat = malloc(BLOCK_SIZE * super_t.num_FAT_blocks);
+	// malloc?
 	void *fat_block = malloc(BLOCK_SIZE);
 	for(int i = 1; i < super_t.root_dir_index; i++){
+		
 		if(block_read(i, &fat_block)== -1)
 			return -1;
 		// each block of FAT has block_read
 		memcpy(fat_t.entries_fat  + ((i-1) * BLOCK_SIZE), fat_block, BLOCK_SIZE);
 	}
-	free(fat_block);
+	*/
+
+	// free(fat_block);
+	fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(super_t.num_data_blocks));
+	void *fat_block = malloc(BLOCK_SIZE);
+	for (int i = 1; i < super_t.root_dir_index; i++) {
+		if (block_read(i, fat_block) == -1)
+			return -1;
+		memcpy(fat_t.entries_fat + (i-1)*BLOCK_SIZE, fat_block, BLOCK_SIZE);
+	}
 
 	// Root Directory
 	if(block_read(super_t.root_dir_index, &root_t) == -1)
@@ -133,11 +145,13 @@ int fs_umount(void)
 		return -1;
 	
 	/*clean and reset everything */
-	free(fat_t.entries_fat);
-	memset(root_t.entries_root, 0, FS_FILE_MAX_COUNT*sizeof(root_t.entries_root));
-	uint8_t tempstr[8] = ""; 
-	super_t.signature = tempstr;
-	strncpy("", super_t.signature, sizeof(super_t.signature));
+	// free(fat_t.entries_fat);
+	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};	
+	for(int i = 0; i < FS_FILE_MAX_COUNT; i++) {
+		root_t.entries_root[i] = empty_entry;
+	}
+	char* tempstr = "";
+	strcpy((char *)super_t.signature, tempstr);
 	super_t.total_num_blocks = 0;
 	super_t.root_dir_index = 0;
 	super_t.data_start_index = 0;
@@ -205,8 +219,8 @@ int fs_create(const char *filename)
 	/* TODO: Phase 2 */
 	int i;
 	for(i = 0; i < FS_FILE_MAX_COUNT; i++) {
-		if(strcmp(root_t.entries_root[i].filename,"")) {
-			strcpy(root_t.entries_root[i].filename, filename);
+		if(strcmp((char *)root_t.entries_root[i].filename,"")) {
+			strcpy((char *)root_t.entries_root[i].filename, filename);
 			break;
 		}
 	}
@@ -217,15 +231,17 @@ int fs_create(const char *filename)
 
 int fs_delete(const char *filename)
 {
-	int pos = 0;
+	int pos;
 
 	/* TODO: Phase 2 */
-	for( pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
-		if(strcmp(root_t.entries_root[pos].filename,filename)) {
+	for(pos = 0; pos < FS_FILE_MAX_COUNT; ++pos) {
+		if(strcmp((char *)root_t.entries_root[pos].filename,filename)) {
 			break;
 		}
 	}
-	struct entry empty_entry;
+	pos--;
+	
+	//struct entry empty_entry;
 	uint16_t data_index = root_t.entries_root[pos].first_data_index;
 
 	while(data_index != 0xFFFF) {
@@ -234,6 +250,7 @@ int fs_delete(const char *filename)
 		data_index = next_index;
 	}
 	fat_t.entries_fat[data_index] = 0;
+	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};	
 
 	root_t.entries_root[pos] = empty_entry;
 	return 0;
@@ -244,7 +261,9 @@ int fs_ls(void)
 	/* TODO: Phase 2 */
 	printf("FS Ls:\n");
 	for(int i = 0; i< FS_FILE_MAX_COUNT; i++) {
-		printf("file: %s, size: %d, data_blk: %d\n",root_t.entries_root[i].filename,root_t.entries_root[i].file_size,root_t.entries_root[i].first_data_index);
+		if(root_t.entries_root[i].first_data_index != 0) {
+			printf("file: %s, size: %d, data_blk: %d\n",root_t.entries_root[i].filename,root_t.entries_root[i].file_size,root_t.entries_root[i].first_data_index);
+		}
 	}
 	return 0;
 }
@@ -295,7 +314,7 @@ int fs_close(int fd)
 		return -1;
 	
 	file_des_table.file_t[fd].filename[0] = '\0';
-	file_des_table.file_t[fd].file_offset = NULL;
+	file_des_table.file_t[fd].file_offset = 0;
 	file_des_table.num_open_file--;
 
 	return 0;
@@ -338,7 +357,7 @@ int fs_lseek(int fd, size_t offset)
 	if(offset > current_file_size)
 		return -1;
 
-	file_des_table.file_t[fd].file_offset = &current_file_size;
+	file_des_table.file_t[fd].file_offset = current_file_size;
 
 	return 0;
 }
@@ -375,6 +394,12 @@ int fs_write(int fd, void *buf, size_t count)
 
 	if(file_des_table.file_t[fd].filename[0] == '\0')
 		return -1;
+	
+	if(count == 0)
+		return -1;
+
+	if(buf == NULL)
+		return -1;
 
 	return 0;
 }
@@ -388,6 +413,11 @@ int fs_read(int fd, void *buf, size_t count)
 	if(file_des_table.file_t[fd].filename[0] == '\0')
 		return -1;
 
+	if(count == 0)
+		return -1;
+
+	if(buf == NULL)
+		return -1;
 	
 	return 0;
 }
