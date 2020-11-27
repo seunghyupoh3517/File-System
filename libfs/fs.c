@@ -3,16 +3,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
 #include "disk.h"
 #include "fs.h"
-// Finish up Phase1 + Check Phase2 + Move on to Phase3
-
-// /home/cs150jp/public/p3/apps/test_fs_student.sh testing script
-
-/* TODO: Phase 1 */
-
-/* FAT possible values for each entry - Nor = index of next data block */
+/* Value for each entry in FAT */
 #define FAT_EOC 0xFFFF
 #define AVAILABLE 0
 
@@ -80,17 +73,17 @@ int fs_mount(const char *diskname)
 	if(block_disk_count() != super_t.total_num_blocks)
 		return -1;
 	
-	if(super_t.num_data_blocks + super_t.num_FAT_blocks + 2 != super_t.total_num_blocks)
+	if(super_t.num_data_blocks + (uint16_t)(super_t.num_FAT_blocks) + 2 != super_t.total_num_blocks)
 		return -1;
 	
 	// FAT
 	uint16_t extra = 0;
 	if(((super_t.num_data_blocks * 2) % BLOCK_SIZE) != 0)
 		extra = 1;
-	if(super_t.num_FAT_blocks != (((super_t.num_data_blocks * 2) / BLOCK_SIZE) + extra))
+	if((uint16_t)super_t.num_FAT_blocks != (((super_t.num_data_blocks * 2) / BLOCK_SIZE) + extra))
 		return -1;
 
-	if(super_t.num_FAT_blocks + 1 != super_t.root_dir_index)
+	if((uint16_t)super_t.num_FAT_blocks + 1 != super_t.root_dir_index)
 		return -1;
 	// each fat block can have 2048 entries of 16 bit, 2 bytes - one data block = 2 bytes
 	// total fat block = #data block * 16bit 
@@ -398,6 +391,7 @@ int fs_write(int fd, void *buf, size_t count)
 	if(count == 0)
 		return -1;
 
+	//
 	if(buf == NULL)
 		return -1;
 
@@ -415,9 +409,31 @@ int fs_read(int fd, void *buf, size_t count)
 
 	if(count == 0)
 		return -1;
-
+	
+	//
 	if(buf == NULL)
 		return -1;
 	
+	/*
+		1. Ideal case
+		- offset: beginning of the data block
+		- size of buf == size of data block
+		-> block_read()
+
+		2. Small operation 
+		- offset: not aligned on the beginning 
+		- size of buf < a data block
+		-> bounce buffer (intermediate memory)
+		
+		3. Big operation
+		- offset: not aligned on the beginning
+		- size of buf > a data block 
+		-> mix of bounce buffer + direct copy
+
+
+		size_t offset = file_des_table.file_t[fd].file_offset;
+		char *bounce = malloc(BLOCK_SIZE);
+	*/
+
 	return 0;
 }
