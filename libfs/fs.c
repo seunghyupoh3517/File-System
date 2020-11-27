@@ -79,7 +79,7 @@ int fs_mount(const char *diskname)
 
 	if(block_disk_count() != super_t.total_num_blocks)
 		return -1;
-
+	
 	if(super_t.num_data_blocks + super_t.num_FAT_blocks + 2 != super_t.total_num_blocks)
 		return -1;
 	
@@ -92,7 +92,6 @@ int fs_mount(const char *diskname)
 
 	if(super_t.num_FAT_blocks + 1 != super_t.root_dir_index)
 		return -1;
-
 	// each fat block can have 2048 entries of 16 bit, 2 bytes - one data block = 2 bytes
 	// total fat block = #data block * 16bit 
 	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t)); Internal fragmentation?
@@ -146,9 +145,13 @@ int fs_umount(void)
 		return -1;
 	
 	/*clean and reset everything */
-	//free(fat_t.entries_fat);
-	//memset(root_t.entries_root, 0, FS_FILE_MAX_COUNT); 
-	//memcmp("", super_t.signature, sizeof(super_t.signature));
+	// free(fat_t.entries_fat);
+	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};	
+	for(int i = 0; i < FS_FILE_MAX_COUNT; i++) {
+		root_t.entries_root[i] = empty_entry;
+	}
+	char* tempstr = "";
+	strcpy((char *)super_t.signature, tempstr);
 	super_t.total_num_blocks = 0;
 	super_t.root_dir_index = 0;
 	super_t.data_start_index = 0;
@@ -228,14 +231,16 @@ int fs_create(const char *filename)
 
 int fs_delete(const char *filename)
 {
-	int pos = 0;
+	int pos;
 
 	/* TODO: Phase 2 */
-	for( pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
+	for(pos = 0; pos < FS_FILE_MAX_COUNT; ++pos) {
 		if(strcmp((char *)root_t.entries_root[pos].filename,filename)) {
 			break;
 		}
 	}
+	pos--;
+	
 	//struct entry empty_entry;
 	uint16_t data_index = root_t.entries_root[pos].first_data_index;
 
@@ -245,8 +250,9 @@ int fs_delete(const char *filename)
 		data_index = next_index;
 	}
 	fat_t.entries_fat[data_index] = 0;
-	//root_t.entries_root[pos] = empty_entry;
+	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};	
 
+	root_t.entries_root[pos] = empty_entry;
 	return 0;
 }
 
@@ -255,7 +261,9 @@ int fs_ls(void)
 	/* TODO: Phase 2 */
 	printf("FS Ls:\n");
 	for(int i = 0; i< FS_FILE_MAX_COUNT; i++) {
-		printf("file: %s, size: %d, data_blk: %d\n",root_t.entries_root[i].filename,root_t.entries_root[i].file_size,root_t.entries_root[i].first_data_index);
+		if(root_t.entries_root[i].first_data_index != 0) {
+			printf("file: %s, size: %d, data_blk: %d\n",root_t.entries_root[i].filename,root_t.entries_root[i].file_size,root_t.entries_root[i].first_data_index);
+		}
 	}
 	return 0;
 }
