@@ -381,8 +381,9 @@ void thread_fs_rm(void *arg)
 	filename = t_arg->argv[1];
 
 	
-	if (fs_mount(diskname)) {}
+	if (fs_mount(diskname)) {
 		die("Cannot mount diskname");
+	}
 
 	if (fs_delete(filename)) {
 		fs_umount();

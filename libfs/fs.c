@@ -76,16 +76,13 @@ int fs_mount(const char *diskname)
 	}
 	
 	if(memcmp("ECS150FS", super_t.signature, sizeof(super_t.signature))) {
-
 		return -1;
 	}
 	if(block_disk_count() != super_t.total_num_blocks) {
-
 		return -1;
 	}
 
 	if(super_t.num_data_blocks + super_t.num_FAT_blocks + 2 != super_t.total_num_blocks) {
-
 		return -1;
 	}
 	// FAT
@@ -94,7 +91,6 @@ int fs_mount(const char *diskname)
 		extra = 1;
 	}
 	if(super_t.num_FAT_blocks != (((super_t.num_data_blocks * 2) / BLOCK_SIZE) + extra)) {
-
 		return -1;
 	}
 
@@ -122,18 +118,21 @@ int fs_mount(const char *diskname)
 	fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(super_t.num_data_blocks));
 	void *fat_block = malloc(BLOCK_SIZE);
 	for (int i = 1; i < super_t.root_dir_index; i++) {
-		if (block_read(i, fat_block) == -1)
+		if (block_read(i, fat_block) == -1)  {
 			return -1;
+		}
 		memcpy(fat_t.entries_fat + (i-1)*BLOCK_SIZE, fat_block, BLOCK_SIZE);
 	}
 
 	// Root Directory
-	if(block_read(super_t.root_dir_index, &root_t) == -1)
+	if(block_read(super_t.root_dir_index, &root_t) == -1) {
 		return -1;
+	}
 
 	// Data
-	if(super_t.root_dir_index + 1 != super_t.data_start_index)
+	if(super_t.root_dir_index + 1 != super_t.data_start_index) {
 		return -1;
+	}
 	
 	// ???
 	// file_des_table.num_open_file = 0;
@@ -155,7 +154,7 @@ int fs_umount(void)
                 return -1;
 
         for (int i = 1; i < super_t.root_dir_index; i++) {
-                if (block_write(i, &fat_t) == -1 )
+                if (block_write(i, &fat_t.entries_fat) == -1 )
                         return -1;
         }
 
@@ -181,7 +180,6 @@ int fs_umount(void)
         if(block_disk_close() == -1) {
                 return -1;
         }
-
         return 0;
 }
 
@@ -248,19 +246,16 @@ int fs_create(const char *filename)
 int fs_delete(const char *filename)
 {
 	int pos;
-
 	/* TODO: Phase 2 */
 	for(pos = 0; pos < FS_FILE_MAX_COUNT; pos++) {
-		if(strcmp((char *)root_t.entries_root[pos].filename,filename)) {
+		if(strcmp((char *)root_t.entries_root[pos].filename,filename) == 0) {
 			break;
 		}
 	}
-	pos--;
-	
 	//struct entry empty_entry;
 	uint16_t data_index = root_t.entries_root[pos].first_data_index;
 
-	while(data_index != 0xFFFF) {
+	while(data_index != FAT_EOC) {
 		uint16_t next_index = fat_t.entries_fat[data_index];
 		fat_t.entries_fat[data_index] = 0;
 		data_index = next_index;
@@ -270,6 +265,7 @@ int fs_delete(const char *filename)
 
 	root_t.entries_root[pos] = empty_entry;
 	return 0;
+
 }
 
 int fs_ls(void)
@@ -318,6 +314,7 @@ int fs_open(const char *filename)
 			break;
 		}
 	}
+
 
 
 	return fd_id;
