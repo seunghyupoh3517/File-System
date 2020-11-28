@@ -132,7 +132,7 @@ int fs_mount(const char *diskname)
 		}
 		memcpy(fat_t.entries_fat + (i - 1) * BLOCK_SIZE, fat_block, BLOCK_SIZE);
 	}
-
+	
 	// Root Directory
 	if (block_read(super_t.root_dir_index, &root_t) == -1)
 	{
@@ -415,21 +415,25 @@ Helper functions needed
 -> first fit strategy (first block available from the begininning of the FAT)
 3. Deal with possible mismatches between file's current offset, amount of bytes to r/w, size of blocks
 
+* usuage of bounce buffer
+i.e. read the entire block into bounce buffer and then copy only the right amount of bytes from the bounce buffer into user-supplied buffer
+
 */
 
-/*
-int ret_index_datablock(int fd)
-{
-	int index = 0;
-	for(int i = 0; i <FS_FILE_MAX_COUNT; i++){
-		if(strcmp(char *)root_t.entries_root[i].filename, ) == 0){
-			index = 
+// Returns the index of the data block corresponding to the file's offset
+uint16_t data_index(size_t offset, uint16_t f_start)
+{	
+	uint16_t counter = BLOCK_SIZE;
+	uint16_t ret_data_index = f_start;
+	while(ret_data_index != FAT_EOC){
+		if(fat_t.entries_fat[ret_data_index] == FAT_EOC || counter >= offset){
+			return ret_data_index;
 		}
+		counter += BLOCK_SIZE;
 	}
-
-	return index;
+	
+	return ret_data_index;
 }
-*/
 
 int fs_write(int fd, void *buf, size_t count)
 {
@@ -460,11 +464,46 @@ int fs_read(int fd, void *buf, size_t count)
 
 	if (count == 0)
 		return -1;
+
+	uint8_t *f_filename = file_des_table.file_t[fd].filename;
+	size_t f_offset = file_des_table.file_t[fd].file_offset;
+
+	// find the file beginning offset
+	uint16_t f_start;
+	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
+		if(strcmp((char *) f_filename, (char *)root_t.entries_root[i].filename) == 0){
+			f_start = root_t.entries_root[i].first_data_index;
+			break;
+		}
+	}
+
+	uint16_t data_block_index = data_index(f_offset, f_start);
+	void *bounce = malloc(BLOCK_SIZE);
+	int f_size = fs_stat(fd);
+
 	
-	//
-	if(buf == NULL)
-		return -1;
-	
+	size_t count_check = AVAILABLE;
+	for(size_t i = 0; i < count; i++){
+		if(f_offset >= count){
+
+		}
+
+		if(f_offset >= BLOCK_SIZE)
+			if(block_read(data_block_index, bounce) == -1)
+				return -1;
+			
+			void *temp;
+			memcpy(bounce + , temp, BLOCK_SIZE);
+			
+
+			count_check += BLOCK_SIZE;
+		
+	}
+	//memcpy(buf, bounce + f_offset, count);
+
+	//buf				------------
+	//bounce buffer ----------
+	//file          ----------
 	/*
 		1. Ideal case
 		- offset: beginning of the data block
@@ -480,10 +519,6 @@ int fs_read(int fd, void *buf, size_t count)
 		- offset: not aligned on the beginning
 		- size of buf > a data block 
 		-> mix of bounce buffer + direct copy
-
-
-		size_t offset = file_des_table.file_t[fd].file_offset;
-		char *bounce = malloc(BLOCK_SIZE);
 	*/
 
 	return 0;
