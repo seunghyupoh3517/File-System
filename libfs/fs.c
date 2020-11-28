@@ -319,9 +319,7 @@ int fs_open(const char *filename)
 	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
 		if (strcmp(filename, (const char *)root_t.entries_root[i].filename) == 0)
-		{
-		}
-		no_file = 1;
+			no_file = 1;
 	}
 	if (!no_file)
 	{
@@ -429,6 +427,7 @@ uint16_t data_index(size_t offset, uint16_t f_start)
 		if(fat_t.entries_fat[ret_data_index] == FAT_EOC || counter >= offset){
 			return ret_data_index;
 		}
+		ret_data_index = fat_t.entries_fat[ret_data_index];
 		counter += BLOCK_SIZE;
 	}
 	
@@ -483,6 +482,7 @@ int fs_read(int fd, void *buf, size_t count)
 	int f_size = fs_stat(fd);
 
 	
+	
 	size_t count_check = BLOCK_SIZE;
 	size_t diff = 0;
 	size_t bytes_read = 0;
@@ -490,7 +490,6 @@ int fs_read(int fd, void *buf, size_t count)
 		if(block_read(data_block_index, bounce) == -1)
 			return -1;
 		void *temp = malloc(BLOCK_SIZE);
-		printf("%s\n", (char*)bounce);
 		if(i == 0 && count_check >= count) {
 			memcpy(temp, bounce + f_offset, count);
 			diff = count;
@@ -512,11 +511,12 @@ int fs_read(int fd, void *buf, size_t count)
 			bytes_read += diff;
 		}
 
+		memcpy(buf + (i*diff), temp, diff);
+		free(temp);
+		
 		if(count_check >= count)
 			break;	
 		
-		memcpy(buf + (i*diff), temp, diff);
-		free(temp);
 	}
 	
 	//memcpy(buf, bounce + f_offset, count);
@@ -540,6 +540,5 @@ int fs_read(int fd, void *buf, size_t count)
 		- size of buf > a data block 
 		-> mix of bounce buffer + direct copy
 	*/
-
 	return count;
 }
