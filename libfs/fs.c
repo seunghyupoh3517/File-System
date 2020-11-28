@@ -432,6 +432,7 @@ uint16_t data_index(size_t offset, uint16_t f_start)
 		counter += BLOCK_SIZE;
 	}
 	
+	
 	return ret_data_index;
 }
 
@@ -482,23 +483,42 @@ int fs_read(int fd, void *buf, size_t count)
 	int f_size = fs_stat(fd);
 
 	
-	size_t count_check = AVAILABLE;
-	for(size_t i = 0; i < count; i++){
-		if(f_offset >= count){
-
+	size_t count_check = BLOCK_SIZE;
+	size_t diff = 0;
+	size_t bytes_read = 0;
+	for(size_t i = 0; i <= count; i++) {
+		if(block_read(data_block_index, bounce) == -1)
+			return -1;
+		void *temp = malloc(BLOCK_SIZE);
+		printf("%s\n", (char*)bounce);
+		if(i == 0 && count_check >= count) {
+			memcpy(temp, bounce + f_offset, count);
+			diff = count;
+			bytes_read += diff;
+		}
+		else if(i == 0 && count_check < count) {
+			memcpy(temp + f_offset, bounce, BLOCK_SIZE);
+			diff = BLOCK_SIZE;
+			bytes_read +=  diff;
+		}
+		else if(count_check >= count) {
+			memcpy(temp, bounce, count);
+			diff = count;
+			bytes_read += diff;
+		}
+		else {
+			memcpy(temp, bounce, BLOCK_SIZE);
+			diff = BLOCK_SIZE;
+			bytes_read += diff;
 		}
 
-		if(f_offset >= BLOCK_SIZE)
-			if(block_read(data_block_index, bounce) == -1)
-				return -1;
-			
-			void *temp;
-			memcpy(bounce + , temp, BLOCK_SIZE);
-			
-
-			count_check += BLOCK_SIZE;
+		if(count_check >= count)
+			break;	
 		
+		memcpy(buf + (i*diff), temp, diff);
+		free(temp);
 	}
+	
 	//memcpy(buf, bounce + f_offset, count);
 
 	//buf				------------
@@ -521,5 +541,5 @@ int fs_read(int fd, void *buf, size_t count)
 		-> mix of bounce buffer + direct copy
 	*/
 
-	return 0;
+	return count;
 }
