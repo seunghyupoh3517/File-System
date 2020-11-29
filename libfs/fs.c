@@ -116,6 +116,7 @@ int fs_mount(const char *diskname)
 		return -1;
 	}
 
+
 	/* Read FAT entries, Big array of 16bit entries (linked list of data blocks) */
 	fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t));
 	/* Read block into each FAT block */
@@ -154,11 +155,6 @@ int fs_mount(const char *diskname)
 		{
 			return -1;
 		}
-
-		if (root_check && root_t.entries_root[i].first_data_index != FAT_EOC)
-		{
-			return -1;
-		}
 		root_check = 0;
 	}
 
@@ -177,8 +173,8 @@ int fs_umount(void)
 
 	for (int i = 1; i < super_t.root_dir_index; i++)
 	{
-		if (block_write(i, &fat_t.entries_fat) == -1)
-		{
+		if (block_write(i, fat_t.entries_fat + (i - 1) * BLOCK_SIZE) == -1) {
+
 			return -1;
 		}
 	}
@@ -669,9 +665,9 @@ int fs_read(int fd, void *buf, size_t count)
 		if(block_read(data_block_index, bounce) == -1)
 			return -1;
 		void *temp = malloc(BLOCK_SIZE);
-		printf("%s\n", (char*)bounce);
-		if(i == 0 && count_check >= count) 
-		{
+
+    if(i == 0 && count_check >= count) {
+
 			memcpy(temp, bounce + f_offset, count);
 			diff = count;
 			bytes_read += diff;
