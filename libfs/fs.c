@@ -154,11 +154,6 @@ int fs_mount(const char *diskname)
 		{
 			return -1;
 		}
-
-		if (root_check && root_t.entries_root[i].first_data_index != FAT_EOC)
-		{
-			return -1;
-		}
 		root_check = 0;
 	}
 
