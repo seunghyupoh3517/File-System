@@ -165,7 +165,7 @@ int fs_umount(void)
 
 	for (int i = 1; i < super_t.root_dir_index; i++)
 	{
-		if (block_write(i, &fat_t.entries_fat) == -1)
+		if (block_write(i, fat_t.entries_fat + (i - 1) * BLOCK_SIZE) == -1)
 			return -1;
 	}
 
