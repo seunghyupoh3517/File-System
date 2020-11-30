@@ -654,51 +654,58 @@ int fs_read(int fd, void *buf, size_t count)
 		}
 	}
 	/* Index of the data block corresponding to the file offset */
-	uint16_t data_block_index = data_index(f_offset, f_start);
-
-	/* Bounce buffer */
+	uint16_t data_block_index = data_index(f_offset, f_start) + super_t.data_start_index;
+	
 	void *bounce = malloc(BLOCK_SIZE);	
 	size_t count_check = BLOCK_SIZE;
 	size_t diff = 0;
-	int bytes_read = 0;
+	size_t bytes_read = 0;
+	void *temp = malloc(BLOCK_SIZE);
+
 	for(size_t i = 0; i <= count; i++) {
 		if(block_read(data_block_index, bounce) == -1)
 			return -1;
-		void *temp = malloc(BLOCK_SIZE);
-
-    if(i == 0 && count_check >= count) {
-
+	
+		
+		if(i == 0 && count_check >= count) { //First and only block
 			memcpy(temp, bounce + f_offset, count);
 			diff = count;
-			bytes_read += diff;
+			bytes_read += count;
 		}
-		else if(i == 0 && count_check < count) 
-		{
-			memcpy(temp + f_offset, bounce, BLOCK_SIZE);
+		else if(i == 0 && count_check < count) { //First block to read 
+			memcpy(temp , bounce + f_offset, BLOCK_SIZE);
 			diff = BLOCK_SIZE;
 			bytes_read +=  diff;
 		}
-		else if(count_check >= count) 
-		{
-			memcpy(temp, bounce, count);
-			diff = count;
+		else if(bytes_read + BLOCK_SIZE >= count) { //Last block
+			memcpy(temp, bounce, BLOCK_SIZE);
+			diff = count - (count_check - BLOCK_SIZE);
 			bytes_read += diff;
+			memcpy(buf + (i* BLOCK_SIZE), temp, diff);
+			break;
 		}
-		else 
-		{
+		else { //Middle blocks
 			memcpy(temp, bounce, BLOCK_SIZE);
 			diff = BLOCK_SIZE;
 			bytes_read += diff;
 		}
+		
+		memcpy(buf + (i*diff), temp, diff);	
 
-		memcpy(buf + (i*diff), temp, diff);
-		free(temp);
-
-		if(count_check >= count)
-		{
+		
+		if(bytes_read == count) {
 			break;	
 		}
+
+		count_check += BLOCK_SIZE;
+
+		/* Get next data block to be read*/
+		uint16_t next_index = fat_t.entries_fat[data_block_index - super_t.data_start_index];
+		data_block_index = next_index + super_t.data_start_index;
+		
 	}
+	free(temp);
+	free(bounce);
 
 	return bytes_read;
 }
