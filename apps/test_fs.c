@@ -335,6 +335,7 @@ void thread_fs_cat(void *arg)
 	}
 
 	stat = fs_stat(fs_fd);
+	
 	if (stat < 0) {
 		fs_umount();
 		die("Cannot stat file");
