@@ -672,7 +672,7 @@ int fs_read(int fd, void *buf, size_t count)
 			diff = count;
 			bytes_read += count;
 		}
-		else if(i == 0 && count_check < count) { //First block
+		else if(i == 0 && count_check < count) { //First block to read 
 			memcpy(temp , bounce + f_offset, BLOCK_SIZE);
 			diff = BLOCK_SIZE;
 			bytes_read +=  diff;
