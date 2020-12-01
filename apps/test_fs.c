@@ -442,7 +442,6 @@ void thread_fs_add(void *arg)
 		fs_umount();
 		die("Cannot open file");
 	}
-
 	written = fs_write(fs_fd, buf, st.st_size);
 
 	if (fs_close(fs_fd)) {
