@@ -530,11 +530,28 @@ uint16_t data_index(size_t offset, uint16_t f_start)
 
 	return ret_data_index;
 }
-
+/*finds first empty entry in FAT*/
+int first_fit() {
+	for(int i = 1; i < super_t.num_FAT_blocks* 2048; i++) {
+		if(fat_t.entries_fat[i] == AVAILABLE) {
+			return i;
+		}
+	}
+	return -1;
+}
+/*Gets the index of the file in the root directory*/
+int find_pos_entry(uint8_t * filename) {
+	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
+		if(strcmp((char *) filename, (char *)root_t.entries_root[i].filename) == 0)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
 /* Write to a file */
-int fs_write(int fd, void *buf, size_t count)
-{
-	/* TODO: Phase 4 */
+int fs_write(int fd, void *buf, size_t count) {
+	/* Error Checking */
 	if (fd < 0 || fd > FS_OPEN_MAX_COUNT)
 	{
 		return -1;
@@ -558,63 +575,77 @@ int fs_write(int fd, void *buf, size_t count)
 	/* Find correponding properties first */
 	uint8_t *f_filename = file_des_table.file_t[fd].filename;
 	size_t f_offset = file_des_table.file_t[fd].file_offset;
-	int curr_fsize = fs_stat(fd);
-	/* Index of the first data block of the file */
-	uint16_t f_start;
-	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
-		if(strcmp((char *) f_filename, (char *)root_t.entries_root[i].filename) == 0)
-		{
-			f_start = root_t.entries_root[i].first_data_index;
-			break;
-		}
+	uint16_t data_block_index;
+
+	int pos_entry = find_pos_entry(f_filename); //get the entry in the root directory that is corresponding to filename 
+	uint16_t f_start = root_t.entries_root[pos_entry].first_data_index;
+	root_t.entries_root[pos_entry].file_size = count; 
+
+	
+	if(f_start != FAT_EOC) { //written to before
+		data_block_index = data_index(f_offset, f_start) + super_t.data_start_index;
+	} else { 
+		data_block_index = first_fit() + super_t.data_start_index;
 	}
-	/* Index of the data block corresponding to the file offset */
-	uint16_t data_block_index = data_index(f_offset, f_start);
+
+	root_t.entries_root[pos_entry].first_data_index = abs(data_block_index - super_t.data_start_index);
 
 	/* Bounce buffer */
 	void *bounce = malloc(BLOCK_SIZE);	
-	int bytes_write = 0;
-
-	// Decide whether to expand or not
-	int expand = 0;
-	/* 
-	Possible scenario
-	1. write data to the 
-
-	2. expand the data block
-
-	3. no more free data block to expand
+	int bytes_wrote = 0;
+	size_t count_check = BLOCK_SIZE;
+	size_t diff = 0;
+	uint16_t next_index;
 	
-	for(size_t i = 0; i <= count; i++)  Iternation data block by data block
-	{
-		if()
-
-		if()
-
-		
-		
-
-		if(expand)
-		{
-			root_t.entries_root[].file_size ++;
+	for(size_t i = 0; i <= count; i++) {
+		if(i == 0 && count_check >= count) { //First and only block
+			diff = count;
+			memcpy(bounce, buf + f_offset, count);
+			bytes_wrote += diff;
+		}
+		else if(i == 0 && count_check < count) { //First block 
+			diff = BLOCK_SIZE;
+			memcpy(bounce, buf + f_offset, BLOCK_SIZE);
+			bytes_wrote += diff;
+		}
+		else if((size_t)bytes_wrote + BLOCK_SIZE >= count) { //Last block
+			diff = count - (count_check - BLOCK_SIZE);
+			memcpy(bounce, buf + f_offset, diff);
+			bytes_wrote += diff;
+		}
+		else { //Middle blocks
+			diff = BLOCK_SIZE;
+			memcpy(bounce, buf + f_offset, BLOCK_SIZE);
+			bytes_wrote += diff;
+			
 		}
 
-		//helper#2
-			if more free data entry in FAT (same as more free data block left on disk)
-				return first free data index
-			else
-				return FAT_EOC
-		//
-		with returned index, expand, write - do we overwrite?
+		if(block_write(data_block_index, bounce) == -1) 
+			return -1;
+		
+		f_offset = bytes_wrote; //changing the offset as we go
+		count_check += BLOCK_SIZE;
 
-		if(current offset > )
-		{
-
+		if((size_t)bytes_wrote == count) { //Done writing & set last data index to FAT_EOC so its not overwriiten when new files are added
+			fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)] = FAT_EOC;
+			break;
 		}
+		
+		if(fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)] == 0) { //expand blocks
+			fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)] = FAT_EOC;
+			next_index = first_fit();
+			if(first_fit() == -1) //no more free data blocks
+				return -1;
+		} else { //overwrite existing blocks
+			next_index = fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)];
+		}
+
+		fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)] = next_index;
+		data_block_index = next_index + super_t.data_start_index;
 	}
-	*/
-
-	return bytes_write;
+	free(bounce);
+	
+	return bytes_wrote;
 }
 
 /* Read from a file */
@@ -645,6 +676,7 @@ int fs_read(int fd, void *buf, size_t count)
 	uint8_t *f_filename = file_des_table.file_t[fd].filename;
 	size_t f_offset = file_des_table.file_t[fd].file_offset;
 	/* Index of the first data block of the file */
+	
 	uint16_t f_start;
 	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
 		if(strcmp((char *) f_filename, (char *)root_t.entries_root[i].filename) == 0)
