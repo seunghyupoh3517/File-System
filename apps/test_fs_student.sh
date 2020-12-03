@@ -238,6 +238,298 @@ run_fs_create_multiple() {
     log "Score: ${score}"
 }
 
+run_comprehensive(){
+    echo -e "\n\n";
+    echo "Creating Virtual Disk of size 8192";
+    rm *driver;
+    ./fs_make.x our_driver.fs 8192;
+    ./fs_make.x ref_driver.fs 8192;
+
+
+    echo -e "\n\n";
+    echo "Testing info";
+    ./test_fs.x info our_driver.fs > our_info.txt;
+    ./fs_ref.x info ref_driver.fs > ref_info.txt;
+    diff our_info.txt ref_info.txt;
+    rm our_info.txt ref_info.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing empty ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing small file addition";
+    ./test_fs.x add our_driver.fs file1.txt > our_add.txt;
+    ./fs_ref.x add ref_driver.fs file1.txt > ref_add.txt;
+    diff our_add.txt ref_add.txt;
+    rm ref_add.txt our_add.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing small file read";
+    ./test_fs.x cat our_driver.fs file1.txt > our_read.txt;
+    ./fs_ref.x cat ref_driver.fs file1.txt > ref_read.txt;
+    diff our_read.txt ref_read.txt;
+    rm our_read.txt ref_read.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing large file addition";
+    ./test_fs.x add our_driver.fs file2.txt > our_add.txt;
+    ./fs_ref.x add ref_driver.fs file2.txt > ref_add.txt;
+    diff our_add.txt ref_add.txt;
+    rm ref_add.txt our_add.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing large file read";
+    ./test_fs.x cat our_driver.fs file2.txt > our_read.txt;
+    ./fs_ref.x cat ref_driver.fs file2.txt > ref_read.txt;
+    diff our_read.txt ref_read.txt;
+    rm our_read.txt ref_read.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing invalid file read";
+    ./test_fs.x cat our_driver.fs blank.txt > our_read.txt;
+    ./fs_ref.x cat ref_driver.fs blank.txt > ref_read.txt;
+    diff our_read.txt ref_read.txt;
+    rm our_read.txt ref_read.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing 2 file ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing 1 file removal";
+    ./test_fs.x rm our_driver.fs file1.txt > our_rm.txt;
+    ./fs_ref.x rm ref_driver.fs file1.txt > ref_rm.txt;
+    diff our_rm.txt ref_rm.txt;
+    rm our_rm.txt ref_rm.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing 1 file ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing info";
+    ./test_fs.x info our_driver.fs > our_info.txt;
+    ./fs_ref.x info ref_driver.fs > ref_info.txt;
+    diff our_info.txt ref_info.txt;
+    rm our_info.txt ref_info.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing stat of existing file";
+    ./test_fs.x stat our_driver.fs file2.txt > our_stat.txt;
+    ./fs_ref.x stat ref_driver.fs file2.txt > ref_stat.txt;
+    diff our_stat.txt ref_stat.txt;
+    rm our_stat.txt ref_stat.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing stat of nonexisting file";
+    ./test_fs.x stat our_driver.fs file1.txt > our_stat.txt;
+    ./fs_ref.x stat ref_driver.fs file1.txt > ref_stat.txt;
+    diff our_stat.txt ref_stat.txt;
+    rm our_stat.txt ref_stat.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing final file removal";
+    ./test_fs.x rm our_driver.fs file2.txt > our_rm.txt;
+    ./fs_ref.x rm ref_driver.fs file2.txt > ref_rm.txt;
+    diff our_rm.txt ref_rm.txt;
+    rm our_rm.txt ref_rm.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing invalid file removal";
+    ./test_fs.x rm our_driver.fs file2.txt > our_rm.txt;
+    ./fs_ref.x rm ref_driver.fs file2.txt > ref_rm.txt;
+    diff our_rm.txt ref_rm.txt;
+    rm our_rm.txt ref_rm.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing empty ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+    echo -e "\n\n";
+    echo "Testing Completed to Driver size 8192";
+
+    echo -e "\n\n";
+    echo "Testing script script.example";
+    ./test_fs.x script our_driver.fs scripts/script.example > our_script.txt;
+    ./fs_ref.x script ref_driver.fs scripts/script.example > ref_script.txt;
+    diff our_script.txt ref_script.txt;
+    rm our_script.txt ref_script.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing script mis_read_index_overwrite";
+    ./test_fs.x script our_driver.fs scripts/mis_read_index_overwrite > our_script.txt;
+    ./fs_ref.x script ref_driver.fs scripts/mis_read_index_overwrite > ref_script.txt;
+    diff our_script.txt ref_script.txt;
+    rm our_script.txt ref_script.txt;
+
+    echo -e "\n\n";
+    echo "Creating Virtual Disk of size 4";
+    rm our_driver.fs ref_driver.fs;
+    ./fs_make.x our_driver.fs 4;
+    ./fs_make.x ref_driver.fs 4;
+
+
+    echo -e "\n\n";
+    echo "Testing info";
+    ./test_fs.x info our_driver.fs > our_info.txt;
+    ./fs_ref.x info ref_driver.fs > ref_info.txt;
+    diff our_info.txt ref_info.txt;
+    rm our_info.txt ref_info.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing empty ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing small file addition";
+    ./test_fs.x add our_driver.fs file1.txt > our_add.txt;
+    ./fs_ref.x add ref_driver.fs file1.txt > ref_add.txt;
+    diff our_add.txt ref_add.txt;
+    rm ref_add.txt our_add.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing small file read";
+    ./test_fs.x cat our_driver.fs file1.txt > our_read.txt;
+    ./fs_ref.x cat ref_driver.fs file1.txt > ref_read.txt;
+    diff our_read.txt ref_read.txt;
+    rm our_read.txt ref_read.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing large file addition";
+    ./test_fs.x add our_driver.fs file2.txt > our_add.txt;
+    ./fs_ref.x add ref_driver.fs file2.txt > ref_add.txt;
+    diff our_add.txt ref_add.txt;
+    rm ref_add.txt our_add.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing large file read";
+    ./test_fs.x cat our_driver.fs file2.txt > our_read.txt;
+    ./fs_ref.x cat ref_driver.fs file2.txt > ref_read.txt;
+    diff our_read.txt ref_read.txt;
+    rm our_read.txt ref_read.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing invalid file read";
+    ./test_fs.x cat our_driver.fs blank.txt > our_read.txt;
+    ./fs_ref.x cat ref_driver.fs blank.txt > ref_read.txt;
+    diff our_read.txt ref_read.txt;
+    rm our_read.txt ref_read.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing 2 file ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing 1 file removal";
+    ./test_fs.x rm our_driver.fs file1.txt > our_rm.txt;
+    ./fs_ref.x rm ref_driver.fs file1.txt > ref_rm.txt;
+    diff our_rm.txt ref_rm.txt;
+    rm our_rm.txt ref_rm.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing 1 file ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing info";
+    ./test_fs.x info our_driver.fs > our_info.txt;
+    ./fs_ref.x info ref_driver.fs > ref_info.txt;
+    diff our_info.txt ref_info.txt;
+    rm our_info.txt ref_info.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing stat of existing file";
+    ./test_fs.x stat our_driver.fs file2.txt > our_stat.txt;
+    ./fs_ref.x stat ref_driver.fs file2.txt > ref_stat.txt;
+    diff our_stat.txt ref_stat.txt;
+    rm our_stat.txt ref_stat.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing stat of nonexisting file";
+    ./test_fs.x stat our_driver.fs file1.txt > our_stat.txt;
+    ./fs_ref.x stat ref_driver.fs file1.txt > ref_stat.txt;
+    diff our_stat.txt ref_stat.txt;
+    rm our_stat.txt ref_stat.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing final file removal";
+    ./test_fs.x rm our_driver.fs file2.txt > our_rm.txt;
+    ./fs_ref.x rm ref_driver.fs file2.txt > ref_rm.txt;
+    diff our_rm.txt ref_rm.txt;
+    rm our_rm.txt ref_rm.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing invalid file removal";
+    ./test_fs.x rm our_driver.fs file2.txt > our_rm.txt;
+    ./fs_ref.x rm ref_driver.fs file2.txt > ref_rm.txt;
+    diff our_rm.txt ref_rm.txt;
+    rm our_rm.txt ref_rm.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing empty ls";
+    ./test_fs.x ls our_driver.fs > our_ls.txt;
+    ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
+    diff our_ls.txt ref_ls.txt;
+    rm our_ls.txt ref_ls.txt;
+
+
+    echo -e "\n\n";
+    echo "Testing Completed to Driver size 4";
+    rm our_driver.fs ref_driver.fs
+}
 #
 # Run tests
 #
@@ -248,6 +540,8 @@ run_tests() {
 	# Phase 2
 	run_fs_simple_create
 	run_fs_create_multiple
+
+    run_comprehensive
 }
 
 make_fs() {

@@ -118,16 +118,14 @@ int fs_mount(const char *diskname)
 
 
 	/* Read FAT entries, Big array of 16bit entries (linked list of data blocks) */
-	fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t));
-	/* Read block into each FAT block */
-	void *fat_block = malloc(BLOCK_SIZE);
-	for (int i = 1; i < super_t.root_dir_index; i++)
+	fat_t.entries_fat = malloc(super_t.num_FAT_blocks * BLOCK_SIZE);
+	/* Read block into each FAT block of 4096 */
+	for (int i = 1; i <= super_t.num_FAT_blocks; i++)
 	{
-		if (block_read(i, fat_block) == -1)
+		if (block_read(i, (void *)fat_t.entries_fat + (i - 1) * BLOCK_SIZE) == -1)
 		{
 			return -1;
 		}
-		memcpy(fat_t.entries_fat + (i - 1) * BLOCK_SIZE, fat_block, BLOCK_SIZE);
 	}
 	
 	/* Error Checking */
@@ -184,7 +182,9 @@ int fs_umount(void)
 		return -1;
 	}
 
+	
 	/* clean and reset everything */ 
+	free(fat_t.entries_fat);
 	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};
 	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
@@ -530,7 +530,7 @@ uint16_t data_index(size_t offset, uint16_t f_start)
 
 	return ret_data_index;
 }
-/*finds first empty entry in FAT*/
+/* finds first empty entry in FAT*/
 int first_fit() {
 	for(int i = 1; i < super_t.num_FAT_blocks* 2048; i++) {
 		if(fat_t.entries_fat[i] == AVAILABLE) {
@@ -539,7 +539,7 @@ int first_fit() {
 	}
 	return -1;
 }
-/*Gets the index of the file in the root directory*/
+/* Gets the index of the file in the root directory*/
 int find_pos_entry(uint8_t * filename) {
 	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
 		if(strcmp((char *) filename, (char *)root_t.entries_root[i].filename) == 0)

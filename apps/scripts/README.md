@@ -37,7 +37,7 @@ line):
 `SEEK	<offset>`
 : Seeks to the given offset.
 
-`WRITE	DATA	<data>`
+`WRITE	DATA	<data>`r
 : Writes `<data>` at the current offset given in the script file.
 
 `WRITE	FILE	<filename>`
