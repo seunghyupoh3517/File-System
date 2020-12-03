@@ -361,10 +361,11 @@ int fs_delete(const char *filename)
 		fat_t.entries_fat[data_index] = 0;
 		data_index = next_index;
 	}
-	fat_t.entries_fat[data_index] = 0;
+
+	// fat_t.entries_fat[data_index] = 0;
 	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = FAT_EOC};
 	root_t.entries_root[pos] = empty_entry;
-
+	
 	return 0;
 }
 
@@ -631,8 +632,9 @@ int fs_write(int fd, void *buf, size_t count) {
 			
 		}
 
-		if(block_write(data_block_index, bounce) == -1) 
+		if(block_write(data_block_index, bounce) == -1) {
 			return -1;
+		}
 		
 		f_offset = bytes_wrote; //changing the offset as we go
 		count_check += BLOCK_SIZE;
@@ -646,7 +648,7 @@ int fs_write(int fd, void *buf, size_t count) {
 			fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)] = FAT_EOC;
 			next_index = first_fit();
 			if(first_fit() == -1) //no more free data blocks
-				return -1;
+				return bytes_wrote;
 		} else { //overwrite existing blocks
 			next_index = fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)];
 		}
@@ -684,6 +686,7 @@ int fs_read(int fd, void *buf, size_t count)
 	{
 		return -1;
 	}
+	
 
 	/* Find correponding properties first */
 	uint8_t *f_filename = file_des_table.file_t[fd].filename;
@@ -691,12 +694,16 @@ int fs_read(int fd, void *buf, size_t count)
 	/* Index of the first data block of the file */
 	
 	uint16_t f_start;
+	int i = 0;
 	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
 		if(strcmp((char *) f_filename, (char *)root_t.entries_root[i].filename) == 0)
 		{
 			f_start = root_t.entries_root[i].first_data_index;
 			break;
 		}
+	}
+	if(count > root_t.entries_root[i].file_size) {
+		count = root_t.entries_root[i].file_size;
 	}
 	/* Index of the data block corresponding to the file offset */
 	uint16_t data_block_index = data_index(f_offset, f_start) + super_t.data_start_index;
