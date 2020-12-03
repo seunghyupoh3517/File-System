@@ -264,10 +264,12 @@ run_comprehensive(){
 
     echo -e "\n\n";
     echo "Testing small file addition";
+    run_tool dd if=/dev/zero of=file1.txt bs=10 count=1
     ./test_fs.x add our_driver.fs file1.txt > our_add.txt;
     ./fs_ref.x add ref_driver.fs file1.txt > ref_add.txt;
     diff our_add.txt ref_add.txt;
-    rm ref_add.txt our_add.txt;
+    rm -f ref_add.txt our_add.txt;
+   
 
 
     echo -e "\n\n";
@@ -280,6 +282,7 @@ run_comprehensive(){
 
     echo -e "\n\n";
     echo "Testing large file addition";
+    run_tool dd if=/dev/zero of=file2.txt bs=8692 count=1
     ./test_fs.x add our_driver.fs file2.txt > our_add.txt;
     ./fs_ref.x add ref_driver.fs file2.txt > ref_add.txt;
     diff our_add.txt ref_add.txt;
@@ -424,12 +427,12 @@ run_comprehensive(){
     ./test_fs.x ls our_driver.fs > our_ls.txt;
     ./fs_ref.x ls ref_driver.fs > ref_ls.txt;
     diff our_ls.txt ref_ls.txt;
-    rm our_ls.txt ref_ls.txt;
+    rm -f our_ls.txt ref_ls.txt;
 
 
     echo -e "\n\n";
     echo "Testing small file addition";
-    ./test_fs.x add our_driver.fs file1.txt > our_add.txt;
+   c;
     ./fs_ref.x add ref_driver.fs file1.txt > ref_add.txt;
     diff our_add.txt ref_add.txt;
     rm ref_add.txt our_add.txt;
@@ -440,7 +443,7 @@ run_comprehensive(){
     ./test_fs.x cat our_driver.fs file1.txt > our_read.txt;
     ./fs_ref.x cat ref_driver.fs file1.txt > ref_read.txt;
     diff our_read.txt ref_read.txt;
-    rm our_read.txt ref_read.txt;
+    rm -f our_read.txt ref_read.txt;
 
 
     echo -e "\n\n";
@@ -448,7 +451,7 @@ run_comprehensive(){
     ./test_fs.x add our_driver.fs file2.txt > our_add.txt;
     ./fs_ref.x add ref_driver.fs file2.txt > ref_add.txt;
     diff our_add.txt ref_add.txt;
-    rm ref_add.txt our_add.txt;
+    rm -f ref_add.txt our_add.txt;
 
 
     echo -e "\n\n";
@@ -456,7 +459,7 @@ run_comprehensive(){
     ./test_fs.x cat our_driver.fs file2.txt > our_read.txt;
     ./fs_ref.x cat ref_driver.fs file2.txt > ref_read.txt;
     diff our_read.txt ref_read.txt;
-    rm our_read.txt ref_read.txt;
+    rm -f our_read.txt ref_read.txt;
 
 
     echo -e "\n\n";
@@ -541,7 +544,7 @@ run_comprehensive(){
 
     echo -e "\n\n";
     echo "Testing Completed to Driver size 4";
-    rm our_driver.fs ref_driver.fs
+    rm -f our_driver.fs ref_driver.fs
 }
 #
 # Run tests
