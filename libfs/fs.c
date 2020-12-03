@@ -579,7 +579,7 @@ int fs_write(int fd, void *buf, size_t count) {
 
 	int pos_entry = find_pos_entry(f_filename); //get the entry in the root directory that is corresponding to filename 
 	uint16_t f_start = root_t.entries_root[pos_entry].first_data_index;
-	root_t.entries_root[pos_entry].file_size = count; 
+	 
 
 	
 	if(f_start != FAT_EOC) { //written to before
@@ -591,31 +591,42 @@ int fs_write(int fd, void *buf, size_t count) {
 	root_t.entries_root[pos_entry].first_data_index = abs(data_block_index - super_t.data_start_index);
 
 	/* Bounce buffer */
-	void *bounce = malloc(BLOCK_SIZE);	
+	void *bounce = malloc(BLOCK_SIZE);
+	void *temp = malloc(BLOCK_SIZE);	
 	int bytes_wrote = 0;
 	size_t count_check = BLOCK_SIZE;
 	size_t diff = 0;
 	uint16_t next_index;
 	
 	for(size_t i = 0; i <= count; i++) {
+		if(data_block_index >= super_t.data_start_index + super_t.num_data_blocks) {
+			fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)] = FAT_EOC;
+			break;
+		}
+		if(i == 0) {
+			if(block_read(data_block_index, temp) == -1) {
+				return -1;
+			}
+			memcpy(bounce, temp, BLOCK_SIZE);
+		}
 		if(i == 0 && count_check >= count) { //First and only block
 			diff = count;
-			memcpy(bounce, buf + f_offset, count);
+			memcpy(bounce + f_offset, buf, count);
 			bytes_wrote += diff;
 		}
 		else if(i == 0 && count_check < count) { //First block 
 			diff = BLOCK_SIZE;
-			memcpy(bounce, buf + f_offset, BLOCK_SIZE);
+			memcpy(bounce + f_offset, buf, BLOCK_SIZE);
 			bytes_wrote += diff;
 		}
 		else if((size_t)bytes_wrote + BLOCK_SIZE >= count) { //Last block
 			diff = count - (count_check - BLOCK_SIZE);
-			memcpy(bounce, buf + f_offset, diff);
+			memcpy(bounce, buf, diff);
 			bytes_wrote += diff;
 		}
 		else { //Middle blocks
 			diff = BLOCK_SIZE;
-			memcpy(bounce, buf + f_offset, BLOCK_SIZE);
+			memcpy(bounce, buf, BLOCK_SIZE);
 			bytes_wrote += diff;
 			
 		}
@@ -643,6 +654,8 @@ int fs_write(int fd, void *buf, size_t count) {
 		fat_t.entries_fat[abs(data_block_index - super_t.data_start_index)] = next_index;
 		data_block_index = next_index + super_t.data_start_index;
 	}
+	file_des_table.file_t[fd].file_offset = f_offset;
+	root_t.entries_root[pos_entry].file_size = bytes_wrote;
 	free(bounce);
 	
 	return bytes_wrote;
@@ -695,6 +708,7 @@ int fs_read(int fd, void *buf, size_t count)
 	void *temp = malloc(BLOCK_SIZE);
 
 	for(size_t i = 0; i <= count; i++) {
+		
 		if(block_read(data_block_index, bounce) == -1)
 			return -1;
 	
@@ -721,7 +735,7 @@ int fs_read(int fd, void *buf, size_t count)
 			diff = BLOCK_SIZE;
 			bytes_read += diff;
 		}
-		
+		f_offset = bytes_read;
 		memcpy(buf + (i*diff), temp, diff);	
 
 		
@@ -736,6 +750,7 @@ int fs_read(int fd, void *buf, size_t count)
 		data_block_index = next_index + super_t.data_start_index;
 		
 	}
+	file_des_table.file_t[fd].file_offset = f_offset;
 	free(temp);
 	free(bounce);
 

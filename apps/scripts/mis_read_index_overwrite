@@ -7,7 +7,7 @@ READ    5   DATA    Hello
 READ    5   DATA    Hello
 SEEK    6
 WRITE   DATA    OLA   
-READ    6   DATA OLA
+READ    6   DATA    OLA
 SEEK    0
 WRITE   FILE    test_file
 READ    4096    FILE    test_file
