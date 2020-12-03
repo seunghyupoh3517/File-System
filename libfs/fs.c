@@ -356,14 +356,14 @@ int fs_delete(const char *filename)
 
 	/* Delethe filename from the root dir */
 	uint16_t data_index = root_t.entries_root[pos].first_data_index;
-	while (data_index != FAT_EOC)
+	while (fat_t.entries_fat[data_index] != FAT_EOC)
 	{
 		uint16_t next_index = fat_t.entries_fat[data_index];
 		fat_t.entries_fat[data_index] = 0;
 		data_index = next_index;
 	}
 
-	// fat_t.entries_fat[data_index] = 0;
+	fat_t.entries_fat[data_index] = 0;
 	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = FAT_EOC};
 	root_t.entries_root[pos] = empty_entry;
 	
