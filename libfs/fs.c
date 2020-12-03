@@ -183,10 +183,9 @@ int fs_umount(void)
 		return -1;
 	}
 
-	
 	/* clean and reset everything */ 
 	free(fat_t.entries_fat);
-	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};
+	struct entry empty_entry = {.filename[0] = '\0', .file_size = 0, .first_data_index = 0};
 	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
 		root_t.entries_root[i] = empty_entry;
