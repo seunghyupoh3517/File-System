@@ -1,23 +1,19 @@
 MOUNT
-CREATE  hello_file
-OPEN    hello_file
+CREATE  hello_fs
+OPEN    hello_fs
 WRITE   DATA    Hello
+SEEK    0
+READ    5       DATA    Hello
+WRITE   DATA    abcde
 SEEK    5
-READ    5   DATA    Hello
-READ    5   DATA    Hello
-SEEK    6
-WRITE   DATA    OLA   
-READ    6   DATA OLA
-SEEK    0
-WRITE   FILE    test_file
-READ    4096    FILE    test_file
-SEEK    0
-WRITE   DATA    Overwrite
-SEEK    0
-READ    9   DATA    Overwrite
+READ    5       DATA    abcde
+SEEK    5
 WRITE   FILE    test_file
 SEEK    0
+READ    5       DATA    Hello
+READ    5       DATA    abcde
+SEEK    5
 READ    4096    FILE    test_file
 CLOSE
-DELETE  hello_file
+DELETE  hello_fs
 UMOUNT
