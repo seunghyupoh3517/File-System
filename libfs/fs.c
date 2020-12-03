@@ -363,7 +363,7 @@ int fs_delete(const char *filename)
 	}
 
 	// fat_t.entries_fat[data_index] = 0;
-	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = FAT_EOC};
+	struct entry empty_entry = {.filename[0] = '\0', .file_size = 0, .first_data_index = FAT_EOC};
 	root_t.entries_root[pos] = empty_entry;
 	
 	return 0;

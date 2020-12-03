@@ -331,8 +331,12 @@ run_comprehensive(){
 
     echo -e "\n\n";
     echo "Testing info";
-    ./test_fs.x info our_driver.fs > our_info.txt;
+    ./test_fs.x info ref_driver.fs > our_info.txt;
     ./fs_ref.x info ref_driver.fs > ref_info.txt;
+    diff our_info.txt ref_info.txt;
+    rm our_info.txt ref_info.txt;
+    ./test_fs.x info our_driver.fs > our_info.txt;
+    ./fs_ref.x info our_driver.fs > ref_info.txt;
     diff our_info.txt ref_info.txt;
     rm our_info.txt ref_info.txt;
 
