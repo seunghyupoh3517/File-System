@@ -381,16 +381,29 @@ run_comprehensive(){
 
     echo -e "\n\n";
     echo "Testing script script.example";
-    ./test_fs.x script our_driver.fs scripts/script.example > our_script.txt;
-    ./fs_ref.x script ref_driver.fs scripts/script.example > ref_script.txt;
+    dd if=/dev/random of=test_file bs=4096 count=1;
+    ./fs_make.x test.fs 100;
+    ./test_fs.x script test.fs scripts/script.example > our_script.txt;
+    rm test.fs test_file;
+
+    dd if=/dev/random of=test_file bs=4096 count=1;
+    ./fs_make.x test.fs 100;
+    ./fs_ref.x script test.fs scripts/script.example > ref_script.txt;
+    rm test.fs test_file;
+    
     diff our_script.txt ref_script.txt;
     rm our_script.txt ref_script.txt;
 
 
     echo -e "\n\n";
     echo "Testing script mis_read_index_overwrite";
+    dd if=/dev/random of=test_file bs=4096 count=1;
     ./test_fs.x script our_driver.fs scripts/mis_read_index_overwrite > our_script.txt;
-    ./fs_ref.x script ref_driver.fs scripts/mis_read_index_overwrite > ref_script.txt;
+    rm our_driver.fs test_file;
+    ./fs_make.x our_driver.fs 8192;
+    dd if=/dev/random of=test_file bs=4096 count=1;
+    ./fs_ref.x script our_driver.fs scripts/mis_read_index_overwrite > ref_script.txt;
+    rm test_file;
     diff our_script.txt ref_script.txt;
     rm our_script.txt ref_script.txt;
 

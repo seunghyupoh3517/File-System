@@ -119,15 +119,16 @@ int fs_mount(const char *diskname)
 
 	/* Read FAT entries, Big array of 16bit entries (linked list of data blocks) */
 	fat_t.entries_fat = malloc(super_t.num_FAT_blocks * BLOCK_SIZE);
+	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t));
 	/* Read block into each FAT block of 4096 */
-	for (int i = 1; i <= super_t.num_FAT_blocks; i++)
+	for (size_t i = 1; i <= super_t.num_FAT_blocks; i++)
 	{
-		if (block_read(i, (void *)fat_t.entries_fat + (i - 1) * BLOCK_SIZE) == -1)
+		if (block_read(i, (void *) fat_t.entries_fat + (i - 1) * BLOCK_SIZE) == -1)
 		{
 			return -1;
 		}
 	}
-	
+
 	/* Error Checking */
 	if (fat_t.entries_fat[0] != FAT_EOC)
 	{
