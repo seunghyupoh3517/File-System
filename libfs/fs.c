@@ -119,7 +119,6 @@ int fs_mount(const char *diskname)
 
 	/* Read FAT entries, Big array of 16bit entries (linked list of data blocks) */
 	fat_t.entries_fat = malloc(super_t.num_FAT_blocks * BLOCK_SIZE);
-	// fat_t.entries_fat = malloc(super_t.num_data_blocks * sizeof(uint16_t));
 	/* Read block into each FAT block of 4096 */
 	for (size_t i = 1; i <= super_t.num_FAT_blocks; i++)
 	{
@@ -172,8 +171,8 @@ int fs_umount(void)
 
 	for (int i = 1; i < super_t.root_dir_index; i++)
 	{
-		if (block_write(i, fat_t.entries_fat + (i - 1) * BLOCK_SIZE) == -1) {
-
+		if (block_write(i, fat_t.entries_fat + (i - 1) * BLOCK_SIZE) == -1) 
+		{
 			return -1;
 		}
 	}
@@ -185,7 +184,7 @@ int fs_umount(void)
 
 	/* clean and reset everything */ 
 	free(fat_t.entries_fat);
-	struct entry empty_entry = {.filename[0] = '\0', .file_size = 0, .first_data_index = 0};
+	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = 0};
 	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
 		root_t.entries_root[i] = empty_entry;
@@ -228,7 +227,7 @@ int fs_info(void)
 	*/
 
 	/* Error Checking: No underlying virtual disk was opened */
-	if (super_t.signature[0] == 0)
+	if (super_t.signature[0] == '\0')
 	{
 		return -1;
 	}
@@ -361,7 +360,6 @@ int fs_delete(const char *filename)
 		fat_t.entries_fat[data_index] = 0;
 		data_index = next_index;
 	}
-
 	fat_t.entries_fat[data_index] = 0;
 	struct entry empty_entry = {.filename = "", .file_size = 0, .first_data_index = FAT_EOC};
 	root_t.entries_root[pos] = empty_entry;
@@ -580,8 +578,6 @@ int fs_write(int fd, void *buf, size_t count) {
 
 	int pos_entry = find_pos_entry(f_filename); //get the entry in the root directory that is corresponding to filename 
 	uint16_t f_start = root_t.entries_root[pos_entry].first_data_index;
-	 
-
 	
 	if(f_start != FAT_EOC) { //written to before
 		data_block_index = data_index(f_offset, f_start) + super_t.data_start_index;
@@ -687,12 +683,10 @@ int fs_read(int fd, void *buf, size_t count)
 		return -1;
 	}
 	
-
 	/* Find correponding properties first */
 	uint8_t *f_filename = file_des_table.file_t[fd].filename;
 	size_t f_offset = file_des_table.file_t[fd].file_offset;
 	/* Index of the first data block of the file */
-	
 	uint16_t f_start;
 	int i = 0;
 	for(int i = 0; i < FS_FILE_MAX_COUNT; i++){
